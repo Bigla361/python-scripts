@@ -1,2 +1,2 @@
-# python-scripts
-Random Python scripts I have made.
+# Python Scripts
+A collection of random Python scripts I have made.
