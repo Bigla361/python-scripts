@@ -16,10 +16,7 @@ def get_file():
 
 # Get data at a specific offset
 def get_at_offsets(hex_input, offset, length):
-    result = ''
-    for i in range(length * 2):
-        result = result + list(hex_input)[int(offset, 16) * 2 + i]
-    return result
+    return hex_input[int(offset, 16) * 2:][:length * 2]
 
 # Convert hex to ascii
 def hex_to_ascii(hex_input):
@@ -49,18 +46,39 @@ allowed_bit_depth = {
     6: {8, 16}
 }
 interlace_methods = {
-    0: "no interlace",
+    0: "None",
     1: "Adam7 interlace"
 }
 
+plte_color_types = {
+    3,
+    2,
+    6
+}
+
+# Get Chunks
+chunks = []
+chunkstart = '08'
+while True:
+    length = int(get_at_offsets(file_hex, chunkstart, 4), 16)
+    name = hex_to_ascii(get_at_offsets(file_hex, hex(int(chunkstart, 16) + 4), 4))
+    data = get_at_offsets(file_hex, hex(int(chunkstart, 16) + 8), length)
+    chunks.append({
+        "name": name,
+        "data": data
+    })
+    if name == "IEND":
+        break
+    chunkstart = hex(int(chunkstart, 16) + length + 12)
+
 # IHDR
-height = int(get_at_offsets(file_hex, '10', 4), 16)
-width = int(get_at_offsets(file_hex, '14', 4), 16)
-bitdepth = int(get_at_offsets(file_hex, '18', 1), 16)
-colortype = int(get_at_offsets(file_hex, '19', 1), 16)
-compression = int(get_at_offsets(file_hex, '20', 1), 16)
-filtermethod = int(get_at_offsets(file_hex, '21', 1), 16)
-interlacemethod = int(get_at_offsets(file_hex, '22', 1), 16)
+height = int(get_at_offsets(chunks[0]['data'], '0', 4), 16)
+width = int(get_at_offsets(chunks[0]['data'], '4', 4), 16)
+bitdepth = int(get_at_offsets(chunks[0]['data'], '8', 1), 16)
+colortype = int(get_at_offsets(chunks[0]['data'], '9', 1), 16)
+compression = int(get_at_offsets(chunks[0]['data'], 'A', 1), 16)
+filtermethod = int(get_at_offsets(chunks[0]['data'], 'B', 1), 16)
+interlacemethod = int(get_at_offsets(chunks[0]['data'], 'C', 1), 16)
 
 # Check Data
 if not colortype in color_types:
@@ -77,3 +95,9 @@ print(f"Color Type: {color_types[colortype]}")
 print(f"Compression Method: {compression}")
 print(f"Filter Method: {filtermethod}")
 print(f"Interlace Method: {interlace_methods[interlacemethod]}")
+
+# Read Chunks
+for chunk in chunks:
+    # Image last-modification time
+    if chunk['name'] == 'tIME':
+        print("Last Modification Date:", int(get_at_offsets(chunk['data'], '0', 2)))
